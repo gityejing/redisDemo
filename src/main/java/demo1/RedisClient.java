@@ -5,6 +5,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import jodd.util.StringUtil;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
@@ -58,6 +59,20 @@ public class RedisClient {
 
 		// 构造池
 		shardedJedisPool = new ShardedJedisPool(config, shards);
+	}
+	
+	public void setStr(String key,String value){
+		if(StringUtil.isNotBlank(key) && !jedis.exists(key)){
+			jedis.set(key, value);
+		}
+	}
+	
+	public String getStr(String key){
+		if(StringUtil.isNotBlank(key) && jedis.exists(key)){
+			return jedis.get(key);
+		}else{
+			return "";
+		}
 	}
 
 	public void show() {
