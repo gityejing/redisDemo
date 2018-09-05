@@ -15,7 +15,12 @@ import redis.clients.jedis.ShardedJedisPool;
 import redis.clients.jedis.SortingParams;
 
 public class RedisClient {
-
+	
+	
+	private static final String IP = "192.168.150.146";
+	private static final Integer PORT = 6379;
+	
+	
 	private Jedis jedis;// 非切片额客户端连接
 	private JedisPool jedisPool;// 非切片连接池
 	private ShardedJedis shardedJedis;// 切片额客户端连接
@@ -40,7 +45,7 @@ public class RedisClient {
 		config.setMaxWaitMillis(10001);
 		config.setTestOnBorrow(false);
 
-		jedisPool = new JedisPool(config, "192.168.239.133", 6379);
+		jedisPool = new JedisPool(config, IP, PORT);
 	}
 
 	/**
@@ -55,7 +60,7 @@ public class RedisClient {
 		config.setTestOnBorrow(false);
 		// slave链接
 		List<JedisShardInfo> shards = new ArrayList<JedisShardInfo>();
-		shards.add(new JedisShardInfo("192.168.239.133", 6379, "master"));
+		shards.add(new JedisShardInfo(IP, PORT, "master"));
 
 		// 构造池
 		shardedJedisPool = new ShardedJedisPool(config, shards);
