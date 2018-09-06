@@ -15,12 +15,11 @@ import redis.clients.jedis.ShardedJedisPool;
 import redis.clients.jedis.SortingParams;
 
 public class RedisClient {
-	
-	
-	private static final String IP = "192.168.150.146";
+
+	private static final String IP = "10.10.18.45";
 	private static final Integer PORT = 6379;
-	
-	
+	private static final String PASSWD = "123456";
+
 	private Jedis jedis;// 非切片额客户端连接
 	private JedisPool jedisPool;// 非切片连接池
 	private ShardedJedis shardedJedis;// 切片额客户端连接
@@ -31,8 +30,21 @@ public class RedisClient {
 		initialShardedPool();
 		shardedJedis = shardedJedisPool.getResource();
 		jedis = jedisPool.getResource();
-
 	}
+	
+	
+
+	public Jedis getJedis() {
+		return jedis;
+	}
+
+
+
+	public void setJedis(Jedis jedis) {
+		this.jedis = jedis;
+	}
+
+
 
 	/**
 	 * 初始化非切片池
@@ -46,6 +58,9 @@ public class RedisClient {
 		config.setTestOnBorrow(false);
 
 		jedisPool = new JedisPool(config, IP, PORT);
+		if(null != PASSWD && StringUtil.isNotEmpty(PASSWD)) {
+			jedisPool = new JedisPool(config, IP, PORT, 10000, PASSWD);
+		}
 	}
 
 	/**
@@ -61,21 +76,20 @@ public class RedisClient {
 		// slave链接
 		List<JedisShardInfo> shards = new ArrayList<JedisShardInfo>();
 		shards.add(new JedisShardInfo(IP, PORT, "master"));
-
 		// 构造池
 		shardedJedisPool = new ShardedJedisPool(config, shards);
 	}
-	
-	public void setStr(String key,String value){
-		if(StringUtil.isNotBlank(key) && !jedis.exists(key)){
+
+	public void setStr(String key, String value) {
+		if (StringUtil.isNotBlank(key) && !jedis.exists(key)) {
 			jedis.set(key, value);
 		}
 	}
-	
-	public String getStr(String key){
-		if(StringUtil.isNotBlank(key) && jedis.exists(key)){
+
+	public String getStr(String key) {
+		if (StringUtil.isNotBlank(key) && jedis.exists(key)) {
 			return jedis.get(key);
-		}else{
+		} else {
 			return "";
 		}
 	}
@@ -91,7 +105,7 @@ public class RedisClient {
 		shardedJedisPool.returnResource(shardedJedis);
 	}
 
-	private void StringOperate() {
+	public void StringOperate() {
 		System.out.println("======================String_1==========================");
 		// 清空数据
 		System.out.println("清空库中所有数据：" + jedis.flushDB());
@@ -161,8 +175,9 @@ public class RedisClient {
 		System.out.println("获取key302对应值中的子串：" + shardedJedis.getrange("key302", 5, 7));
 	}
 
-	private void ListOperate() {
+	public void ListOperate() {
 		System.out.println("======================list==========================");
+		
 		// 清空数据
 		System.out.println("清空库中所有数据：" + jedis.flushDB());
 
@@ -175,20 +190,26 @@ public class RedisClient {
 		shardedJedis.lpush("stringlists", "MapList");
 		shardedJedis.lpush("stringlists", "SerialList");
 		shardedJedis.lpush("stringlists", "HashList");
+		
 		shardedJedis.lpush("numberlists", "3");
 		shardedJedis.lpush("numberlists", "1");
 		shardedJedis.lpush("numberlists", "5");
 		shardedJedis.lpush("numberlists", "2");
-		System.out.println("所有元素-stringlists：" + shardedJedis.lrange("stringlists", 0, -1));
+		
+		System.out.println("所有元素-stringlists：" + shardedJedis.lrange("stringlists", 0, -1)); // -1 表示末尾，-2表示倒数第2
+		System.out.println("所有元素-stringlists：" + shardedJedis.lrange("stringlists", 0, -2)); // -1 表示末尾，-2表示倒数第2
 		System.out.println("所有元素-numberlists：" + shardedJedis.lrange("numberlists", 0, -1));
 
 		System.out.println("=============删=============");
 		// 删除列表指定的值 ，第二个参数为删除的个数（有重复时），后add进去的值先被删，类似于出栈
-		System.out.println("成功删除指定元素个数-stringlists：" + shardedJedis.lrem("stringlists", 2, "vector"));
+		System.out.println("所有元素-stringlists：" + shardedJedis.lrange("stringlists", 0, -1));
+		System.out.println("成功删除指定元素个数-stringlists：" + shardedJedis.lrem("stringlists", 2, "vector"));// 指定删除2个
 		System.out.println("删除指定元素之后-stringlists：" + shardedJedis.lrange("stringlists", 0, -1));
+		
 		// 删除区间以外的数据
-		System.out.println("删除下标0-3区间之外的元素：" + shardedJedis.ltrim("stringlists", 0, 3));
+		System.out.println("删除下标0-3区间之外的元素：" + shardedJedis.ltrim("stringlists", 0, 3)); // 区间性删除
 		System.out.println("删除指定区间之外元素后-stringlists：" + shardedJedis.lrange("stringlists", 0, -1));
+		
 		// 列表元素出栈
 		System.out.println("出栈元素：" + shardedJedis.lpop("stringlists"));
 		System.out.println("元素出栈后-stringlists：" + shardedJedis.lrange("stringlists", 0, -1));
@@ -332,16 +353,23 @@ public class RedisClient {
 
 	}
 
+	/**
+	 * string 类型值得存取
+	 */
 	private void KeyOperate() {
 		System.out.println("======================key==========================");
+		
 		// 清空数据
 		System.out.println("清空库中所有数据：" + jedis.flushDB());
+		
 		// 判断key否存在
 		System.out.println("判断key999键是否存在：" + shardedJedis.exists("key999"));
 		System.out.println("新增key001,value001键值对：" + shardedJedis.set("key001", "value001"));
 		System.out.println("判断key001是否存在：" + shardedJedis.exists("key001"));
+		
 		// 输出系统中所有的key
 		System.out.println("新增key002,value002键值对：" + shardedJedis.set("key002", "value002"));
+		
 		System.out.println("系统中所有键如下：");
 		Set<String> keys = jedis.keys("*");
 		Iterator<String> it = keys.iterator();
@@ -349,6 +377,7 @@ public class RedisClient {
 			String key = it.next();
 			System.out.println(key);
 		}
+		
 		// 删除某个key,若key不存在，则忽略该命令。
 		System.out.println("系统中删除key002: " + jedis.del("key002"));
 		System.out.println("判断key002是否存在：" + shardedJedis.exists("key002"));
